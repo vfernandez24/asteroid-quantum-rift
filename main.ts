@@ -141,7 +141,6 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
             mySprite = sprites.create(assets.image`nave_base`, SpriteKind.Player)
             mySprite.setPosition(96, 76)
             scaling.scaleToPixels(mySprite, 12, ScaleDirection.Uniformly, ScaleAnchor.Middle)
-            // scaling.scaleToPixels(mySprite, 14, ScaleDirection.Uniformly, ScaleAnchor.Middle)
             isTitlePage = false
         })
     } else {
