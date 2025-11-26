@@ -11,10 +11,11 @@ controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
     playerDirection = "left"
 })
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (isTitlePage) {
+    if (isTitlePage === true) {
+        isTitlePage = null
         sprites.destroy(textSprite, effects.fire, 500)
         timer.after(2000, function () {
-            scene.centerCameraAt(96, 76)
+            scene.centerCameraAt(80, 60)
             scene.setBackgroundImage(img`
                 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
                 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -139,11 +140,11 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
                 `)
             tiles.setCurrentTilemap(tilemap`TileMap`)
             mySprite = sprites.create(assets.image`nave_base`, SpriteKind.Player)
-            mySprite.setPosition(96, 76)
+            mySprite.setPosition(80, 60)
             scaling.scaleToPixels(mySprite, 12, ScaleDirection.Uniformly, ScaleAnchor.Middle)
             isTitlePage = false
         })
-    } else {
+    } else if (isTitlePage === false) {
         const { vy, vx } = projectileVelocity(playerAngle)
         switch (anglesArray[playerAngle]) {
             case 0:
@@ -179,15 +180,20 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
         newAngle = anglesArray[playerAngle]
         mySprite.setImage(shipPropelledImages[newAngle])
         const { vy, vx } = projectileArray[playerAngle]
-
         velX += vx > 0 ? ACCEL : vx < 0 ? -ACCEL : 0
         velY += vy > 0 ? ACCEL : vy < 0 ? -ACCEL : 0
-
-        if (velX > MAX_SPEED) velX = MAX_SPEED
-        if (velX < -MAX_SPEED) velX = -MAX_SPEED
-        if (velY > MAX_SPEED) velY = MAX_SPEED
-        if (velY < -MAX_SPEED) velY = -MAX_SPEED
-
+        if (velX > MAX_SPEED) {
+            velX = MAX_SPEED
+        }
+        if (velX < 0 - MAX_SPEED) {
+            velX = 0 - MAX_SPEED
+        }
+        if (velY > MAX_SPEED) {
+            velY = MAX_SPEED
+        }
+        if (velY < 0 - MAX_SPEED) {
+            velY = 0 - MAX_SPEED
+        }
         mySprite.setVelocity(velX, velY)
     }
 })
@@ -201,25 +207,30 @@ controller.up.onEvent(ControllerButtonEvent.Released, function () {
         mySprite.setImage(shipBaseImages[newAngle])
     }
 })
+let velY = 0
+let velX = 0
 let newAngle = 0
 let projectile: Sprite = null
 let textSprite: TextSprite = null
 let isTitlePage = false
+let MAX_SPEED = 0
+let projectileImage: Image = null
+let vy = 0
+let vx = 0
+let anglesArray: number[] = []
+let mySprite: Sprite = null
+let isDirectionButtonPressed = false
+let playerDirection: "left" | "right" = null
 // Id
 let playerAngle = 0
-let playerDirection: "left" | "right" = null
-let isDirectionButtonPressed = false
-let mySprite: Sprite = null
-let anglesArray: number[] = []
-let vx = 0
-let vy = 0
-let velX = 0
-let velY = 0
-const ACCEL = 4     // aceleración por pulso
-const MAX_SPEED = 50   // velocidad máxima para la nave
-const FRICTION = 0.3    // fricción para frenado natural
-
-let projectileImage: Image = null
+let halfW = 0
+let halfH = 0
+// aceleración por pulso
+let ACCEL = 4
+// velocidad máxima para la nave
+MAX_SPEED = 50
+// fricción para frenado natural
+let FRICTION = 0.3
 // 315
 let projectileArray = [
     { vy: -120, vx: 0 },
@@ -230,6 +241,12 @@ let projectileArray = [
     { vy: 90, vx: -90 },
     { vy: 0, vx: -120 },
     { vy: -90, vx: -90 }
+]
+let scoreArray: { type: string; score: number }[] = [
+    { score: 100, type: "big_asteroid" },
+    { score: 200, type: "medium_asteroid" },
+    { score: 400, type: "small_asteroid" },
+    { score: 500, type: "little_rock" }
 ]
 info.setScore(0)
 function changePlayerImage(angle: number, playerSprite: Sprite, isPropelled?: boolean) {
@@ -284,7 +301,8 @@ scene.setBackgroundImage(assets.image`TitlePage`)
 textSprite = textsprite.create("press A to start")
 textSprite.setPosition(80, 104)
 game.onUpdate(function () {
-    if (isTitlePage || !mySprite) return
+    if (isTitlePage === true || !(mySprite)) return
+
     if (controller.up.isPressed()) {
         const { vy, vx } = projectileArray[playerAngle]
 
@@ -297,35 +315,54 @@ game.onUpdate(function () {
         if (velY < -MAX_SPEED) velY = -MAX_SPEED
 
         mySprite.setVelocity(velX, velY)
-    }
-    else {
+    } else {
         if (velX > 0) velX -= FRICTION
         if (velX < 0) velX += FRICTION
         if (velY > 0) velY -= FRICTION
         if (velY < 0) velY += FRICTION
 
-        if (Math.abs(velX) < 2) velX = 0
-        if (Math.abs(velY) < 2) velY = 0
-
         mySprite.setVelocity(velX, velY)
     }
-})
 
-game.onUpdateInterval(200, function () {
-    if (isTitlePage || !mySprite) return
+    const halfW = mySprite.width
+    const halfH = mySprite.height
+    const W = screen.width
+    const H = screen.height
+
+    if (mySprite.x <= halfW) {
+        mySprite.x = W - halfW
+    } else if (mySprite.x >= W + Math.floor(halfW / 2)) {
+        mySprite.x = halfW
+    }
+
+    if (mySprite.y <= halfH) {
+        mySprite.y = H - halfH
+    } else if (mySprite.y >= H + Math.floor(halfH / 2)) {
+        mySprite.y = halfH
+    }
+})
+game.onUpdateInterval(150, function () {
+    if (isTitlePage === true || !(mySprite)) {
+        return
+    }
     if (!(isTitlePage) && (controller.left.isPressed() || controller.right.isPressed())) {
         changePlayerImage(changePlayerAngle(playerDirection), mySprite, controller.up.isPressed())
         if (controller.up.isPressed()) {
             const { vy, vx } = projectileArray[playerAngle]
-
             velX += vx > 0 ? ACCEL : vx < 0 ? -ACCEL : 0
             velY += vy > 0 ? ACCEL : vy < 0 ? -ACCEL : 0
-
-            if (velX > MAX_SPEED) velX = MAX_SPEED
-            if (velX < -MAX_SPEED) velX = -MAX_SPEED
-            if (velY > MAX_SPEED) velY = MAX_SPEED
-            if (velY < -MAX_SPEED) velY = -MAX_SPEED
-
+            if (velX > MAX_SPEED) {
+                velX = MAX_SPEED
+            }
+            if (velX < 0 - MAX_SPEED) {
+                velX = 0 - MAX_SPEED
+            }
+            if (velY > MAX_SPEED) {
+                velY = MAX_SPEED
+            }
+            if (velY < 0 - MAX_SPEED) {
+                velY = 0 - MAX_SPEED
+            }
             mySprite.setVelocity(velX, velY)
         }
     }
